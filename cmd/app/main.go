@@ -2,10 +2,14 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/skewertoreversepolarity/telegramBotCrypto/internal/bot"
 	"github.com/skewertoreversepolarity/telegramBotCrypto/internal/config"
 	db "github.com/skewertoreversepolarity/telegramBotCrypto/internal/database"
+	"github.com/skewertoreversepolarity/telegramBotCrypto/internal/monitor"
 )
 
 // echo "# telegramBotCrypto" >> README.md
@@ -32,5 +36,16 @@ func main() {
 	if err != nil {
 		log.Fatal("Ошибка создания Telegram бота:", err)
 	}
+
+	dbMonitor := monitor.New(db, telegramBot, cfg.WalletAddress, cfg.PolliInterval)
+
+	go dbMonitor.Start()
+
+	log.Println("Бот запущен. Ожидание событий...")
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+
+	log.Println("Завершение работы бота...")
 
 }
